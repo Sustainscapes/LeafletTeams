@@ -41,12 +41,27 @@ Sinks <- read_sf("Samplet_au_sinks_2021/samplede_AU_pkt_2021.shp") %>% st_transf
 ```
 
 
+```{r NationalPark}
+
+NationalParks <- list.files(path = "NationalParks/", pattern = ".shp", recursive = T, full.names = T)
+
+NationalNames <- list.dirs(path = "NationalParks/", full.names = F)
+NationalNames <- NationalNames[str_detect(NationalNames, pattern = "GIS", negate = T)]
+
+NationalNames <- NationalNames[-1]
+
+NationalParks <- NationalParks %>% 
+  purrr::map(read_sf) %>% purrr::map2(.y = NationalNames,~mutate(.x, Name = .y)) %>% purrr::reduce(bind_rows) %>% st_transform(crs = '+proj=longlat +datum=WGS84')
+```
+
+
 ```{r}
 leaflet() %>% 
   addTiles() %>% 
   addPolygons(data = as_Spatial(st_zm(Areas[[1]])), popup = ~Vandområd, group = "Catchment", weight = 1, color = "blue") %>%
+  addPolygons(data = NationalParks, weight = 1, popup = ~Name, color = "green", group = "National Parks") %>% 
   addCircleMarkers(data = Rewilding, group = "Rewildling", popup = ~Name, color = "red") %>% 
   addCircleMarkers(data = Sinks, color = "orange", group = "Sinks", popup = ~Dato) %>% 
-  addLayersControl(overlayGroups = c("Catchment","Rewildling", "Sinks")) %>% 
-  addLegend(colors = c("blue", "red", "orange"), labels = c("Catchment","Rewildling", "Sinks"))
+  addLayersControl(overlayGroups = c("Catchment","Rewildling", "Sinks", "National Parks")) %>% 
+  addLegend(colors = c("blue", "red", "orange", "green"), labels = c("Catchment","Rewildling", "Sinks", "National Parks"))
 ```
