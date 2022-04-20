@@ -56,12 +56,31 @@ NationalParks <- NationalParks %>%
 
 
 ```{r}
-leaflet() %>% 
-  addTiles() %>% 
+l <- leaflet() 
+
+esri <- grep("^Esri", providers, value = TRUE)
+
+for (provider in esri) {
+  l <- l %>% addProviderTiles(provider, group = provider)
+}
+
+l %>%
+  addLayersControl(baseGroups = names(esri),
+    options = layersControlOptions(collapsed = TRUE),
+    overlayGroups = c("Catchment","Rewildling", "Sinks", "National Parks"))  %>%
+  htmlwidgets::onRender("
+    function(el, x) {
+      var myMap = this;
+      myMap.on('baselayerchange',
+        function (e) {
+          myMap.minimap.changeLayer(L.tileLayer.provider(e.name));
+        })
+    }") %>% 
   addPolygons(data = as_Spatial(st_zm(Areas[[1]])), popup = ~Vandområd, group = "Catchment", weight = 1, color = "blue") %>%
   addPolygons(data = NationalParks, weight = 1, popup = ~Name, color = "green", group = "National Parks") %>% 
   addCircleMarkers(data = Rewilding, group = "Rewildling", popup = ~Name, color = "red") %>% 
   addCircleMarkers(data = Sinks, color = "orange", group = "Sinks", popup = ~Dato) %>% 
-  addLayersControl(overlayGroups = c("Catchment","Rewildling", "Sinks", "National Parks")) %>% 
-  addLegend(colors = c("blue", "red", "orange", "green"), labels = c("Catchment","Rewildling", "Sinks", "National Parks"))
+  addLegend(colors = c("blue", "red", "orange", "green"), labels = c("Catchment","Rewildling", "Sinks", "National Parks")) %>% 
+  addMeasure(position = "bottomleft", primaryAreaUnit = "sqmeters", primaryLengthUnit = "meters", thousandsSep = ",") %>% 
+  leafem::addMouseCoordinates()
 ```
